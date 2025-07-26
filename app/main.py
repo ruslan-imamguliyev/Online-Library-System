@@ -2,16 +2,16 @@ import pickle
 from fastapi import FastAPI
 
 # Loading Pickle objects
-with open(r'models\tfidf_matrix.pkl', 'rb') as f:
+with open('models/tfidf_matrix.pkl', 'rb') as f:
     tfidf_matrix = pickle.load(f)
 
-with open(r'models\model.pkl', 'rb') as f:
+with open('models/model.pkl', 'rb') as f:
     model = pickle.load(f)
 
-with open(r'models\index2title.pkl', 'rb') as f:
+with open('models/index2title.pkl', 'rb') as f:
     index2title = pickle.load(f)
 
-with open(r'models\title2index.pkl', 'rb') as f:
+with open('models/title2index.pkl', 'rb') as f:
     title2index = pickle.load(f)
 
 # Create FastAPI instance
