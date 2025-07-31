@@ -4,10 +4,14 @@ WORKDIR /code
 
 COPY ./requirements.txt /code/requirements.txt
 
+COPY ./.env /code/.env
+
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+
+COPY ./datasets/ /code/datasets
 
 COPY ./app/ /code/app
 
-COPY ./models/ /code/models
+EXPOSE 8080
 
-CMD ["fastapi", "run", "app/main.py", "--port", "80"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

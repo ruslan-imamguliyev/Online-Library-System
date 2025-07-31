@@ -17,17 +17,17 @@ API_KEY_NAME = "Online-Library-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
 # Load the books dataset
-df = pd.read_csv(r'datasets\dataset.csv')
+df = pd.read_csv('datasets/dataset.csv')
 
 # Turning string columns into lists
 df['author'] = df['author'].apply(lambda x: ast.literal_eval(x))
 df['genre'] = df['genre'].apply(lambda x: ast.literal_eval(x))
 
 # Load the books embeddings
-embeddings = np.load(r"datasets\book_embeddings.npy")
+embeddings = np.load("datasets/book_embeddings.npy")
 
 # Load faiss index
-index = faiss.read_index(r"datasets\book_index.faiss")
+index = faiss.read_index("datasets/book_index.faiss")
 
 # Create FastAPI instance
 app = FastAPI()
