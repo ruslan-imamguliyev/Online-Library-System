@@ -3,11 +3,18 @@ import numpy as np
 import pandas as pd
 import uvicorn
 import ast
-from typing import List
+import os
+from typing import List, Optional
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Security, status
 from fastapi.security.api_key import APIKeyHeader
 from pydantic import BaseModel
+
+load_dotenv()
+
+API_KEY = os.getenv("API_KEY")
+API_KEY_NAME = "Online-Library-API-Key"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
 # Load the books dataset
 df = pd.read_csv(r'datasets\dataset.csv')
@@ -34,13 +41,23 @@ class BookRecommendResponse(BaseModel):
    recommendations: List[dict]
 
 
+async def get_api_key(api_key: Optional[str] = Security(api_key_header)):
+    if api_key == API_KEY:
+        return api_key
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid API Key",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
 # Main API gateway
 @app.get('/')
 def health_check():
     return {'health_check': 'OK'}
 
 # Recommend API gateway
-@app.post('/recommend', response_model=BookRecommendResponse)
+@app.post('/recommend', response_model=BookRecommendResponse, dependencies=[Depends(get_api_key)])
 def recommend(payload: BookRecommendRequest):
   """
   Recommends k books similar to the given book.
