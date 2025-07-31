@@ -1,21 +1,38 @@
-import pickle
-from fastapi import FastAPI
+import faiss
+import numpy as np
+import pandas as pd
+import uvicorn
+import ast
+from typing import List
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, HTTPException, Security, status
+from fastapi.security.api_key import APIKeyHeader
+from pydantic import BaseModel
 
-# Loading Pickle objects
-with open('models/tfidf_matrix.pkl', 'rb') as f:
-    tfidf_matrix = pickle.load(f)
+# Load the books dataset
+df = pd.read_csv(r'datasets\dataset.csv')
 
-with open('models/model.pkl', 'rb') as f:
-    model = pickle.load(f)
+# Turning string columns into lists
+df['author'] = df['author'].apply(lambda x: ast.literal_eval(x))
+df['genre'] = df['genre'].apply(lambda x: ast.literal_eval(x))
 
-with open('models/index2title.pkl', 'rb') as f:
-    index2title = pickle.load(f)
+# Load the books embeddings
+embeddings = np.load(r"datasets\book_embeddings.npy")
 
-with open('models/title2index.pkl', 'rb') as f:
-    title2index = pickle.load(f)
+# Load faiss index
+index = faiss.read_index(r"datasets\book_index.faiss")
 
 # Create FastAPI instance
 app = FastAPI()
+
+class BookRecommendRequest(BaseModel):
+   index: int
+   k: int=5
+
+
+class BookRecommendResponse(BaseModel):
+   recommendations: List[dict]
+
 
 # Main API gateway
 @app.get('/')
@@ -23,29 +40,29 @@ def health_check():
     return {'health_check': 'OK'}
 
 # Recommend API gateway
-@app.get('/recommend')
-def recommend(title: str):
-    """
-    Recommends 5 books' titles related to given title.
-    Args:
-        title (str): Title of the book to find recommendations for.
-        model: NearestNeighbors model used for recommendations.
-    Returns:
-        list: List of recommended book titles.
-    """
-    # If book not in the dataset, return error
-    if not title.lower() in title2index.index:
-        return None
-    
-    # Fast index lookup from title2index map
-    idx = title2index[title.lower()]
+@app.post('/recommend', response_model=BookRecommendResponse)
+def recommend(payload: BookRecommendRequest):
+  """
+  Recommends k books similar to the given book.
 
-    # Finding k closest indices in the high-dimensional vector space
-    _, indices = model.kneighbors(tfidf_matrix[idx])
+  Args:
+    book_index (int): The index of the book in the dataframe.
+    k (int): The number of books to recommend.
 
-    # Excluding the first index since it's the given book itself
-    indices = indices[0][1:]
+  Returns:
+    A List[dict] containing the recommended books.
+  """
 
-    # Return the result as a Python list
-    result = index2title.iloc[indices].values.tolist()
-    return {"result": result}   
+  # getting embedding vector by book_index
+  query_vector = embeddings[payload.index].reshape(1, -1)
+
+  # getting k + 1 similar vectors (+1 to exclude self)
+  D, I = index.search(query_vector, payload.k + 1)
+
+  # returning a dataframe with selected indices (slicing by [1:] to exclude self)
+  # converting dataframe into json
+  return BookRecommendResponse(recommendations=df.iloc[I[0][1:]].to_dict(orient='records'))
+
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="localhost", port=8000, reload=True)
