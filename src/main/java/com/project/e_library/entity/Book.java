@@ -5,6 +5,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Getter
@@ -24,10 +26,8 @@ public class Book {
     @Column(name = "author")
     private String author;
 
-    @ElementCollection
-    @CollectionTable(name = "book_genres", joinColumns = @JoinColumn(name = "book_id"))
     @Column(name = "genre")
-    private List<String> genres;
+    private String genre;
 
     @Column(name = "description")
     private String description;
@@ -42,5 +42,18 @@ public class Book {
 
     @Column(name = "numRatings")
     private long ratingNumber;
+
+
+    @Transient
+    public List<String> getGenres() {
+        if (genre == null) return List.of();
+        String genresStr = genre.replace("[", "")
+                .replace("]", "")
+                .replace("'", "")
+                .replace("\"", "");
+
+        String[] genreArray = genresStr.split(",");
+        return new ArrayList<>(Arrays.asList(genreArray));
+    }
 
 }
