@@ -2,13 +2,13 @@ import faiss
 import numpy as np
 import pandas as pd
 import uvicorn
-import ast
 import os
 from typing import List, Optional
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Security, status
 from fastapi.security.api_key import APIKeyHeader
 from pydantic import BaseModel
+from sentence_transformers import SentenceTransformer
 
 load_dotenv()
 
@@ -17,17 +17,17 @@ API_KEY_NAME = "Online-Library-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
 # Load the books dataset
-df = pd.read_csv('datasets/dataset.csv')
-
-# Turning string columns into lists
-df['author'] = df['author'].apply(lambda x: ast.literal_eval(x))
-df['genre'] = df['genre'].apply(lambda x: ast.literal_eval(x))
+df = pd.read_csv('assets/datasets/preprocessed.csv')
 
 # Load the books embeddings
-embeddings = np.load("datasets/book_embeddings.npy")
+embeddings = np.load("assets/models/book_embeddings.npy")
 
 # Load faiss index
-index = faiss.read_index("datasets/book_index.faiss")
+index = faiss.read_index("assets/models/book_index.faiss")
+
+# Initiating SentenceTransformer model
+print("Iniating SentenceTransformer model, this may take a minute")
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 # Create FastAPI instance
 app = FastAPI()
@@ -39,6 +39,11 @@ class BookRecommendRequest(BaseModel):
 
 class BookRecommendResponse(BaseModel):
    recommendations: List[dict]
+
+
+class BookRecommendRagRequest(BaseModel):
+    query: str
+    k: int=5
 
 
 async def get_api_key(api_key: Optional[str] = Security(api_key_header)):
@@ -53,12 +58,37 @@ async def get_api_key(api_key: Optional[str] = Security(api_key_header)):
 
 # Main API gateway
 @app.get('/')
-def health_check():
+async def health_check():
     return {'health_check': 'OK'}
+
+
+@app.post('/recommend_rag', response_model=BookRecommendResponse, dependencies=[Depends(get_api_key)])
+async def recommend_rag(payload: BookRecommendRagRequest):
+    """
+    Recommend books based on a query string.
+
+    Args:
+        query (str): The query string to search for.
+        k (int): The number of recommendations to return.
+    
+    Returns:
+        list[dict]: A list of dictionaries containing book recommendations.
+    """
+
+    # Encoding query into embedding
+    query_embedding = model.encode(payload.query)
+
+    # Search the FAISS index
+    distances, indices = index.search(np.array([query_embedding]), payload.k + 1)
+
+    # Return results as list of dictionaries
+    return BookRecommendResponse(recommendations=df.iloc[indices[0][1:]].to_dict(orient='records'))
+
+
 
 # Recommend API gateway
 @app.post('/recommend', response_model=BookRecommendResponse, dependencies=[Depends(get_api_key)])
-def recommend(payload: BookRecommendRequest):
+async def recommend(payload: BookRecommendRequest):
   """
   Recommends k books similar to the given book.
 
