@@ -8,6 +8,7 @@ import lombok.Setter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 @Getter
 @Setter(AccessLevel.NONE)
@@ -26,7 +27,7 @@ public class Book {
     @Column(name = "author")
     private String author;
 
-    @Column(name = "genre")
+    @Column(name = "genres")
     private String genre;
 
     @Column(name = "description")
@@ -36,12 +37,12 @@ public class Book {
     private String imgUrl;
 
     @Column(name = "likedPercent")
-    private double ratingPercent;
+    private String ratingPercent;
 
-    private double rating;
+    private float rating;
 
     @Column(name = "numRatings")
-    private long ratingNumber;
+    private int ratingNumber;
 
 
     @Transient
@@ -56,4 +57,24 @@ public class Book {
         return new ArrayList<>(Arrays.asList(genreArray));
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Book book = (Book) o;
+        return id == book.id && Objects.equals(title, book.title) && Objects.equals(author, book.author);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, title, author);
+    }
+
+    @Override
+    public String toString() {
+        return "Book{" +
+                "title='" + title + '\'' +
+                ", author='" + author + '\'' +
+                ", rating=" + rating +
+                '}';
+    }
 }
