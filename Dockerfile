@@ -6,9 +6,13 @@ COPY ./requirements.txt /code/requirements.txt
 
 COPY ./.env /code/.env
 
+RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir sentence-transformers
+
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-COPY ./datasets/ /code/datasets
+COPY ./assets/ /code/assets
 
 COPY ./app/ /code/app
 

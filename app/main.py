@@ -26,8 +26,8 @@ embeddings = np.load("assets/models/book_embeddings.npy")
 index = faiss.read_index("assets/models/book_index.faiss")
 
 # Initiating SentenceTransformer model
-print("Iniating SentenceTransformer model, this may take a minute")
-model = SentenceTransformer('all-MiniLM-L6-v2')
+print("Initiating SentenceTransformer model, this may take a minute")
+model = SentenceTransformer('assets/sentence_transformer')
 
 # Create FastAPI instance
 app = FastAPI()
@@ -112,4 +112,4 @@ async def recommend(payload: BookRecommendRequest):
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="localhost", port=8000, reload=True)
+    uvicorn.run("main:app", host="localhost", port=8080, reload=True)
