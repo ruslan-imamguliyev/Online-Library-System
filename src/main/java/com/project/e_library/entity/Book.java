@@ -1,14 +1,13 @@
 package com.project.e_library.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Getter
 @Setter(AccessLevel.NONE)
@@ -17,6 +16,7 @@ import java.util.Objects;
 public class Book {
 
     @Id
+    @JsonIgnore
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private int id;
@@ -27,8 +27,11 @@ public class Book {
     @Column(name = "author")
     private String author;
 
-    @Column(name = "genres")
-    private String genre;
+    @ElementCollection(fetch = FetchType.LAZY)
+    @BatchSize(size = 10)
+    @CollectionTable(name = "book_genres", joinColumns = @JoinColumn(name = "book_id"))
+    @Column(name = "genre")
+    private Set<String> genres;
 
     @Column(name = "description")
     private String description;
@@ -43,19 +46,6 @@ public class Book {
 
     @Column(name = "numRatings")
     private int ratingNumber;
-
-
-    @Transient
-    public List<String> getGenres() {
-        if (genre == null) return List.of();
-        String genresStr = genre.replace("[", "")
-                .replace("]", "")
-                .replace("'", "")
-                .replace("\"", "");
-
-        String[] genreArray = genresStr.split(",");
-        return new ArrayList<>(Arrays.asList(genreArray));
-    }
 
     @Override
     public boolean equals(Object o) {
